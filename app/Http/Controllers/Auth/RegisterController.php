@@ -45,17 +45,39 @@ class RegisterController extends Controller
      */
     public function __construct()
     {
-       
+        $this->middleware('guest');
     }
 
     public function getFormRegister()
     {
-       
+        $register = User::all();
+        $category = Category::all();
+        $viewData = [
+            'register' => $register,
+            'category' => $category,
+        ];
+        return view('auth.register', $viewData);
     }
 
     public function postRegister(RequestRegister $request)
     {
-        
+        $data = $request->except('_token');
+        $data['password'] = Hash::make($data['password']);
+        $data['created_at'] = Carbon::now();
+        $id = User::InsertGetId($data);
+        if ($id) {
+            Session::flash('toastr', [
+                'type' => 'success',
+                'message' => 'Chào mừng bạn đến với shop chúng tôi'
+            ]);
+
+            Mail::to($request->email)->send(new RegisterSuccess($request->name));
+            if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+                return redirect()->intended('/');
+            }
+            return redirect()->route('get.login');
+        }
+        return redirect()->back();
     }
 
     /**
@@ -66,7 +88,11 @@ class RegisterController extends Controller
      */
     protected function validator(array $data)
     {
-        
+        return Validator::make($data, [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
     }
 
     /**
@@ -77,6 +103,10 @@ class RegisterController extends Controller
      */
     protected function create(array $data)
     {
-       
+        return User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
     }
 }
