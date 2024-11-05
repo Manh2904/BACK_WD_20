@@ -20,7 +20,8 @@ Route::middleware('auth:api')->get('/users', function (Request $request) {
     return $request->user();
 });
 
-
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::group(['namespace'=>'Api'], function () {
     Route::get('/dashboard','HomeController@index');
@@ -30,6 +31,15 @@ Route::group(['namespace'=>'Api'], function () {
     Route::get('san-pham','ProductController@index');
     Route::get('product/show/{slug}','ProductDetailController@getProductDetail');
 
-   
-   
+    Route::prefix('order')->group(function(){
+        Route::get('','ShoppingCartController@index');
+        Route::post('add/{id}','ShoppingCartController@add');
+        Route::patch('update/{id}','ShoppingCartController@update');
+        Route::delete('delete/{id}','ShoppingCartController@delete');
+        Route::post('pay','ShoppingCartController@postPay');
+    });
+    Route::group(['middleware'=>'auth:api','prefix'=>'transaction'],function(){
+        Route::post('store','TransactionController@postPay');
+    });
+    Route::get('payment/vnpay/callback','TransactionController@callback');
 });
